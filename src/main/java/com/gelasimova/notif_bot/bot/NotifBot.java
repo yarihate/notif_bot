@@ -22,19 +22,13 @@ public class NotifBot extends TelegramLongPollingBot {
             String message = update.getMessage().getText().trim();
             Long chatId = update.getMessage().getChatId();
 
-            new CommandFactory().createCommand(message).execute(chatId);
-
-
-//            SendMessage sm = new SendMessage();
-//            sm.setChatId(String.valueOf(chatId));
-//            sm.setText(message);
-//
-//            try {
-//                execute(sm);
-//            } catch (TelegramApiException e) {
-//                //todo add logging to the project.
-//                e.printStackTrace();
-//            }
+            SendMessage sm = new CommandFactory().createCommand(message).execute(chatId);
+            try {
+                execute(sm);
+            } catch (TelegramApiException e) {
+                //todo add logging to the project.
+                e.printStackTrace();
+            }
         }
     }
 

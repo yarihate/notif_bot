@@ -16,7 +16,7 @@ public class JiraOAuthClient {
     private final JiraOAuthTokenFactory oAuthGetAccessTokenFactory;
     private final String authorizationUrl;
 
-    public JiraOAuthClient(PropertiesClient propertiesClient) throws Exception {
+    public JiraOAuthClient(PropertiesClient propertiesClient) {
         jiraBaseUrl = propertiesClient.getPropertiesOrDefaults().get(JIRA_HOME);
         this.oAuthGetAccessTokenFactory = new JiraOAuthTokenFactory(this.jiraBaseUrl);
         authorizationUrl = jiraBaseUrl + "/plugins/servlet/oauth/authorize";
@@ -32,7 +32,7 @@ public class JiraOAuthClient {
      * @throws InvalidKeySpecException
      * @throws IOException
      */
-    public String getAndAuthorizeTemporaryToken(String consumerKey, String privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    public OAuthAuthorizeTemporaryTokenUrl getAndAuthorizeTemporaryToken(String consumerKey, String privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         JiraOAuthGetTemporaryToken temporaryToken = oAuthGetAccessTokenFactory.getTemporaryToken(consumerKey, privateKey);
         OAuthCredentialsResponse response = temporaryToken.execute();
 
@@ -41,13 +41,12 @@ public class JiraOAuthClient {
 
         OAuthAuthorizeTemporaryTokenUrl authorizationURL = new OAuthAuthorizeTemporaryTokenUrl(authorizationUrl);
         authorizationURL.temporaryToken = response.token;
-        System.out.println("Retrieve request token. Go to " + authorizationURL.toString() + " to authorize it.");
 
-        return response.token;
+        return authorizationURL;
     }
 
     /**
-     * Gets acces token from JIRA
+     * Gets access token from JIRA
      *
      * @param tmpToken    temporary request token
      * @param secret      secret (verification code provided by JIRA after request token authorization)

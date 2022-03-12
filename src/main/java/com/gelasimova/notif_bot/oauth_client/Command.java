@@ -1,7 +1,6 @@
 package com.gelasimova.notif_bot.oauth_client;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public enum Command {
     REQUEST_TOKEN("requestToken"),
@@ -19,9 +18,8 @@ public enum Command {
     }
 
     public static String names() {
-        return Arrays.asList(values()).stream()
-                .map(Command::getName)
-                .collect(Collectors.toList())
+        return Arrays.stream(values())
+                .map(Command::getName).toList()
                 .toString();
     }
 

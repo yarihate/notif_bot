@@ -1,8 +1,10 @@
 package com.gelasimova.notif_bot.bot.command;
 
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+
 public class ChangeFrequencyCommand extends Command {
     @Override
-    public void execute(Long chatId) {
-
+    public SendMessage execute(Long chatId) {
+        return null;
     }
 }

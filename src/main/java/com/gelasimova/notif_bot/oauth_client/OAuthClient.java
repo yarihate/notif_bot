@@ -1,5 +1,6 @@
 package com.gelasimova.notif_bot.oauth_client;
 
+import com.google.api.client.auth.oauth.OAuthAuthorizeTemporaryTokenUrl;
 import com.google.api.client.auth.oauth.OAuthParameters;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
@@ -48,6 +49,12 @@ public class OAuthClient {
                 .ifPresent(Throwable::printStackTrace);
     }
 
+    public String getAuthorizeUrl() {
+        Map<String, String> properties = propertiesClient.getPropertiesOrDefaults();
+        String requestToken = properties.get(AUTHORIZE_URL);
+        return requestToken == null ? "Something went wrong, try later" : String.format("Retrieve request token. Go to %s to authorize it.", requestToken);
+    }
+
     private Optional<Exception> handleUnknownCommand(List<String> arguments) {
         System.out.println("Command not supported. Only " + Command.names() + " are supported.");
         return Optional.empty();
@@ -62,8 +69,9 @@ public class OAuthClient {
     private Optional<Exception> handleGetRequestTokenAction(List<String> arguments) {
         Map<String, String> properties = propertiesClient.getPropertiesOrDefaults();
         try {
-            String requestToken = jiraOAuthClient.getAndAuthorizeTemporaryToken(properties.get(CONSUMER_KEY), properties.get(PRIVATE_KEY));
-            properties.put(REQUEST_TOKEN, requestToken);
+            OAuthAuthorizeTemporaryTokenUrl authAuthorizeTemporaryTokenUrl = jiraOAuthClient.getAndAuthorizeTemporaryToken(properties.get(CONSUMER_KEY), properties.get(PRIVATE_KEY));
+            properties.put(REQUEST_TOKEN, authAuthorizeTemporaryTokenUrl.temporaryToken);
+            properties.put(AUTHORIZE_URL, authAuthorizeTemporaryTokenUrl.toString());
             propertiesClient.savePropertiesToFile(properties);
             return Optional.empty();
         } catch (Exception e) {
