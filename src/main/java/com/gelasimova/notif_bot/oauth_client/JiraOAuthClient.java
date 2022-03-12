@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
-import static com.atlassian.oauth.client.example.PropertiesClient.JIRA_HOME;
+import static com.gelasimova.notif_bot.oauth_client.PropertiesClient.JIRA_HOME;
 
 public class JiraOAuthClient {
 

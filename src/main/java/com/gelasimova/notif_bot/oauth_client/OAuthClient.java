@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import static com.atlassian.oauth.client.example.PropertiesClient.*;
+import static com.gelasimova.notif_bot.oauth_client.PropertiesClient.*;
 
 public class OAuthClient {
 
