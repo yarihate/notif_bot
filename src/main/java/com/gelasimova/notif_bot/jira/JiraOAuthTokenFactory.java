@@ -1,4 +1,4 @@
-package com.gelasimova.notif_bot.oauth_client;
+package com.gelasimova.notif_bot.jira;
 
 import com.google.api.client.auth.oauth.OAuthRsaSigner;
 import com.google.api.client.http.apache.ApacheHttpTransport;
@@ -14,10 +14,8 @@ public class JiraOAuthTokenFactory {
     protected final String accessTokenUrl;
     protected final String requestTokenUrl;
 
-
     public JiraOAuthTokenFactory(String jiraBaseUrl) {
         this.accessTokenUrl = jiraBaseUrl + "/plugins/servlet/oauth/access-token";
-        ;
         requestTokenUrl = jiraBaseUrl + "/plugins/servlet/oauth/request-token";
     }
 

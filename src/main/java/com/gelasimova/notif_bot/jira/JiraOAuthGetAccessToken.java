@@ -1,4 +1,4 @@
-package com.gelasimova.notif_bot.oauth_client;
+package com.gelasimova.notif_bot.jira;
 
 import com.google.api.client.auth.oauth.OAuthGetAccessToken;
 

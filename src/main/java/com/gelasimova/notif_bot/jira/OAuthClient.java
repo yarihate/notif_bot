@@ -1,5 +1,7 @@
-package com.gelasimova.notif_bot.oauth_client;
+package com.gelasimova.notif_bot.jira;
 
+import com.gelasimova.notif_bot.common.Client;
+import com.google.api.client.auth.oauth.OAuthAuthorizeTemporaryTokenUrl;
 import com.google.api.client.auth.oauth.OAuthParameters;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
@@ -8,28 +10,27 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.collect.ImmutableMap;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Function;
 
-import static com.gelasimova.notif_bot.oauth_client.PropertiesClient.*;
+import static com.gelasimova.notif_bot.jira.ClientService.*;
 
+@Component
 public class OAuthClient {
-
-    private final Map<Command, Function<List<String>, Optional<Exception>>> actionHandlers;
-
-    private final PropertiesClient propertiesClient;
+    private final Map<Command, Function<Client, Optional<Exception>>> actionHandlers;
     private final JiraOAuthClient jiraOAuthClient;
 
-    public OAuthClient(PropertiesClient propertiesClient, JiraOAuthClient jiraOAuthClient) {
-        this.propertiesClient = propertiesClient;
+    @Autowired
+    public OAuthClient(JiraOAuthClient jiraOAuthClient) {
         this.jiraOAuthClient = jiraOAuthClient;
 
-        actionHandlers = ImmutableMap.<Command, Function<List<String>, Optional<Exception>>>builder()
+        actionHandlers = ImmutableMap.<Command, Function<Client, Optional<Exception>>>builder()
                 .put(Command.REQUEST_TOKEN, this::handleGetRequestTokenAction)
                 .put(Command.ACCESS_TOKEN, this::handleGetAccessToken)
                 .put(Command.REQUEST, this::handleGetRequest)
@@ -38,33 +39,27 @@ public class OAuthClient {
 
     /**
      * Executes action (if found) with  given lists of arguments
-     *
-     * @param action
-     * @param arguments
      */
-    public void execute(Command action, List<String> arguments) {
+    public void execute(Command action, Client client) {
         actionHandlers.getOrDefault(action, this::handleUnknownCommand)
-                .apply(arguments)
+                .apply(client)
                 .ifPresent(Throwable::printStackTrace);
     }
 
-    private Optional<Exception> handleUnknownCommand(List<String> arguments) {
+    private Optional<Exception> handleUnknownCommand(Client client) {
         System.out.println("Command not supported. Only " + Command.names() + " are supported.");
         return Optional.empty();
     }
 
     /**
      * Gets request token and saves it to properties file
-     *
-     * @param arguments list of arguments: no arguments are needed here
-     * @return
      */
-    private Optional<Exception> handleGetRequestTokenAction(List<String> arguments) {
-        Map<String, String> properties = propertiesClient.getPropertiesOrDefaults();
+    private Optional<Exception> handleGetRequestTokenAction(Client client) {
+        Map<String, String> properties = DEFAULT_PROPERTY_VALUES;
         try {
-            String requestToken = jiraOAuthClient.getAndAuthorizeTemporaryToken(properties.get(CONSUMER_KEY), properties.get(PRIVATE_KEY));
-            properties.put(REQUEST_TOKEN, requestToken);
-            propertiesClient.savePropertiesToFile(properties);
+            OAuthAuthorizeTemporaryTokenUrl authorizeTemporaryToken = jiraOAuthClient.getAndAuthorizeTemporaryToken(properties.get(CONSUMER_KEY), properties.get(PRIVATE_KEY));
+            client.setRequestToken(authorizeTemporaryToken.temporaryToken);
+            client.setAuthUrl(authorizeTemporaryToken.toString());
             return Optional.empty();
         } catch (Exception e) {
             return Optional.of(e);
@@ -73,20 +68,16 @@ public class OAuthClient {
 
     /**
      * Gets access token and saves it to properties file
-     *
-     * @param arguments list of arguments: first argument should be secert (verification code provided by JIRA after request token authorization)
-     * @return
      */
-    private Optional<Exception> handleGetAccessToken(List<String> arguments) {
-        Map<String, String> properties = propertiesClient.getPropertiesOrDefaults();
-        String tmpToken = properties.get(REQUEST_TOKEN);
-        String secret = arguments.get(0);
+    private Optional<Exception> handleGetAccessToken(Client client) {
+        Map<String, String> properties = DEFAULT_PROPERTY_VALUES;
+        String tmpToken = client.getRequestToken();
+        String secret = client.getSecret();
 
         try {
             String accessToken = jiraOAuthClient.getAccessToken(tmpToken, secret, properties.get(CONSUMER_KEY), properties.get(PRIVATE_KEY));
-            properties.put(ACCESS_TOKEN, accessToken);
-            properties.put(SECRET, secret);
-            propertiesClient.savePropertiesToFile(properties);
+            client.setAccessToken(accessToken);
+            client.setSecret(secret);
             return Optional.empty();
         } catch (Exception e) {
             return Optional.of(e);
@@ -95,21 +86,17 @@ public class OAuthClient {
 
     /**
      * Makes request to JIRA to provided url and prints response contect
-     *
-     * @param arguments list of arguments: first argument should be request url
-     * @return
      */
-    private Optional<Exception> handleGetRequest(List<String> arguments) {
-        Map<String, String> properties = propertiesClient.getPropertiesOrDefaults();
-        String tmpToken = properties.get(ACCESS_TOKEN);
-        String secret = properties.get(SECRET);
-        String url = arguments.get(0);
-        propertiesClient.savePropertiesToFile(properties);
-
+    private Optional<Exception> handleGetRequest(Client client) {
+        Map<String, String> properties = DEFAULT_PROPERTY_VALUES;
+        String tmpToken = client.getAccessToken();
+        String secret = client.getSecret();
+        String url = DEFAULT_PROPERTY_VALUES.get(JIRA_REQUEST_URL);
         try {
             OAuthParameters parameters = jiraOAuthClient.getParameters(tmpToken, secret, properties.get(CONSUMER_KEY), properties.get(PRIVATE_KEY));
             HttpResponse response = getResponseFromUrl(parameters, new GenericUrl(url));
-            parseResponse(response);
+            client.setJiraResponse(response.parseAsString());
+            // parseResponse(response);
             return Optional.empty();
         } catch (Exception e) {
             return Optional.of(e);
@@ -119,9 +106,6 @@ public class OAuthClient {
     /**
      * Prints response content
      * if response content is valid JSON it prints it in 'pretty' format
-     *
-     * @param response
-     * @throws IOException
      */
     private void parseResponse(HttpResponse response) throws IOException {
         Scanner s = new Scanner(response.getContent()).useDelimiter("\\A");

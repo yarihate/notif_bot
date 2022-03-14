@@ -1,25 +1,25 @@
-package com.gelasimova.notif_bot.oauth_client;
+package com.gelasimova.notif_bot.jira;
 
 import com.google.api.client.auth.oauth.OAuthAuthorizeTemporaryTokenUrl;
 import com.google.api.client.auth.oauth.OAuthCredentialsResponse;
 import com.google.api.client.auth.oauth.OAuthParameters;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
-import static com.gelasimova.notif_bot.oauth_client.PropertiesClient.JIRA_HOME;
+import static com.gelasimova.notif_bot.jira.ClientService.DEFAULT_PROPERTY_VALUES;
+import static com.gelasimova.notif_bot.jira.ClientService.JIRA_HOME;
 
+@Component
 public class JiraOAuthClient {
-
-    public final String jiraBaseUrl;
     private final JiraOAuthTokenFactory oAuthGetAccessTokenFactory;
     private final String authorizationUrl;
 
-    public JiraOAuthClient(PropertiesClient propertiesClient) throws Exception {
-        jiraBaseUrl = propertiesClient.getPropertiesOrDefaults().get(JIRA_HOME);
-        this.oAuthGetAccessTokenFactory = new JiraOAuthTokenFactory(this.jiraBaseUrl);
-        authorizationUrl = jiraBaseUrl + "/plugins/servlet/oauth/authorize";
+    public JiraOAuthClient() {
+        this.oAuthGetAccessTokenFactory = new JiraOAuthTokenFactory(DEFAULT_PROPERTY_VALUES.get(JIRA_HOME));
+        authorizationUrl = DEFAULT_PROPERTY_VALUES.get(JIRA_HOME) + "/plugins/servlet/oauth/authorize";
     }
 
     /**
@@ -32,18 +32,12 @@ public class JiraOAuthClient {
      * @throws InvalidKeySpecException
      * @throws IOException
      */
-    public String getAndAuthorizeTemporaryToken(String consumerKey, String privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    public OAuthAuthorizeTemporaryTokenUrl getAndAuthorizeTemporaryToken(String consumerKey, String privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         JiraOAuthGetTemporaryToken temporaryToken = oAuthGetAccessTokenFactory.getTemporaryToken(consumerKey, privateKey);
         OAuthCredentialsResponse response = temporaryToken.execute();
-
-        System.out.println("Token:\t\t\t" + response.token);
-        System.out.println("Token secret:\t" + response.tokenSecret);
-
         OAuthAuthorizeTemporaryTokenUrl authorizationURL = new OAuthAuthorizeTemporaryTokenUrl(authorizationUrl);
         authorizationURL.temporaryToken = response.token;
-        System.out.println("Retrieve request token. Go to " + authorizationURL.toString() + " to authorize it.");
-
-        return response.token;
+        return authorizationURL;
     }
 
     /**
@@ -61,8 +55,6 @@ public class JiraOAuthClient {
     public String getAccessToken(String tmpToken, String secret, String consumerKey, String privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         JiraOAuthGetAccessToken oAuthAccessToken = oAuthGetAccessTokenFactory.getJiraOAuthGetAccessToken(tmpToken, secret, consumerKey, privateKey);
         OAuthCredentialsResponse response = oAuthAccessToken.execute();
-
-        System.out.println("Access token:\t\t\t" + response.token);
         return response.token;
     }
 

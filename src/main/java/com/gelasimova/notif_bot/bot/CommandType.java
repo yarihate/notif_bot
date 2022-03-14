@@ -1,4 +1,4 @@
-package com.gelasimova.notif_bot.bot.command;
+package com.gelasimova.notif_bot.bot;
 
 import java.util.Arrays;
 
