@@ -39,7 +39,7 @@ public class NotifBot extends TelegramLongPollingBot {
             String message = update.getMessage().getText().trim();
             Long chatId = update.getMessage().getChatId();
 
-            SendMessage sm = foo(clientService.getOrCreate(chatId), message);
+            SendMessage sm = executeCommand(clientService.getOrCreate(chatId), message);
 
             try {
                 execute(sm);
@@ -51,7 +51,7 @@ public class NotifBot extends TelegramLongPollingBot {
         }
     }
 
-    private SendMessage foo(Client client, String message) {
+    private SendMessage executeCommand(Client client, String message) {
         return switch (getCommandTypeByName(message)) {
             case START -> start(client);
             case UPDATE -> update(client);
